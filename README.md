@@ -34,7 +34,11 @@ curl -O https://raw.githubusercontent.com/EstebanForge/windsurf-installer-linux/
 
 To update Windsurf, you can run the installation script again. It will check for the latest version and update it if necessary.
 
-See above for the installation command.
+Or you can use the provided command to update it directly:
+
+```bash
+windsurf-update
+```
 
 ## Uninstallation
 

@@ -74,9 +74,18 @@ UPGRADE_MODE=false
 if [ -d "$INSTALL_DIR" ]; then
   # Try to get currently installed version
   CURRENT_VERSION=""
-  if [ -f "$DESKTOP_FILE" ]; then
-    CURRENT_VERSION=$(grep -o "Version=.*" "$DESKTOP_FILE" | cut -d= -f2)
+  PRODUCT_JSON_PATH="$INSTALL_DIR/resources/app/product.json" # Define path to product.json
+  if [ -f "$PRODUCT_JSON_PATH" ]; then
+    # Extract version using grep and cut.
+    # grep -o: print only the matching part.
+    # Pattern handles "windsurfVersion": optional_spaces "version_string".
+    # cut -d'"' -f4: delimiter " extracts the 4th field (the version).
+    # 2>/dev/null for grep: suppress errors if file unreadable/pattern not found.
+    # If grep fails/no match, output is empty, cut produces empty, CURRENT_VERSION becomes/remains empty.
+    CURRENT_VERSION=$(grep -o '"windsurfVersion":[[:space:]]*"[^"]*"' "$PRODUCT_JSON_PATH" 2>/dev/null | cut -d'"' -f4)
   fi
+  # If CURRENT_VERSION is still empty, it means product.json was not found,
+  # or it was found but the version could not be extracted.
 
   if [ -n "$CURRENT_VERSION" ]; then
     echo -e "${BLUE}Found existing Windsurf installation (version $CURRENT_VERSION)${NC}"
@@ -91,24 +100,11 @@ fi
 echo "Fetching latest version information..."
 JSON_RESPONSE=$(curl -s https://windsurf-stable.codeium.com/api/update/linux-x64/stable/latest)
 
-# Parse JSON using pure Bash regex - more reliable than grep for complex JSON
-if [[ "$JSON_RESPONSE" =~ \"url\":\"([^\"]+)\" ]]; then
-  DOWNLOAD_URL="${BASH_REMATCH[1]}"
-else
-  DOWNLOAD_URL=""
-fi
-
-if [[ "$JSON_RESPONSE" =~ \"windsurfVersion\":\"([^\"]+)\" ]]; then
-  VERSION="${BASH_REMATCH[1]}"
-else
-  VERSION=""
-fi
-
-if [[ "$JSON_RESPONSE" =~ \"sha256hash\":\"([^\"]+)\" ]]; then
-  SHA256="${BASH_REMATCH[1]}"
-else
-  SHA256=""
-fi
+# Parse JSON using grep and cut for consistency and robustness to spacing
+# Extracts "url", "windsurfVersion" (as VERSION), and "sha256hash"
+DOWNLOAD_URL=$(echo "$JSON_RESPONSE" | grep -o '"url":[[:space:]]*"[^"]*"' | cut -d'"' -f4)
+VERSION=$(echo "$JSON_RESPONSE" | grep -o '"windsurfVersion":[[:space:]]*"[^"]*"' | cut -d'"' -f4)
+SHA256=$(echo "$JSON_RESPONSE" | grep -o '"sha256hash":[[:space:]]*"[^"]*"' | cut -d'"' -f4)
 
 if [ -z "$DOWNLOAD_URL" ] || [ -z "$VERSION" ] || [ -z "$SHA256" ]; then
   echo -e "${RED}Error: Failed to parse version information${NC}"
@@ -116,7 +112,7 @@ if [ -z "$DOWNLOAD_URL" ] || [ -z "$VERSION" ] || [ -z "$SHA256" ]; then
   exit 1
 fi
 
-echo "Found Windsurf version $VERSION"
+echo -e "${BLUE}Remote available Windsurf version: $VERSION${NC}"
 
 # Check if we already have the latest version
 if [ "$UPGRADE_MODE" = true ] && [ "$CURRENT_VERSION" = "$VERSION" ]; then
@@ -147,8 +143,61 @@ curl -L "$DOWNLOAD_URL" -o "$TARBALL"
 # Download the icon-logo from GitHub
 echo "Downloading Windsurf logo..."
 LOGO_URL="https://raw.githubusercontent.com/EstebanForge/windsurf-installer-linux/main/windsurf-logo-512.png"
-LOGO_PATH="$INSTALL_DIR/windsurf-logo-512.png"
-curl -L "$LOGO_URL" -o "$TEMP_DIR/windsurf-logo-512.png"
+LOGO_PATH="$INSTALL_DIR/windsurf-logo-512.png" # Final destination path for the logo
+TEMP_LOGO_FILE="$TEMP_DIR/windsurf-logo-512.png" # Temporary download location
+
+MAX_ATTEMPTS=3
+ATTEMPT=1
+LOGO_DOWNLOADED=false
+
+while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
+  echo "Attempt $ATTEMPT of $MAX_ATTEMPTS to download logo..."
+  curl -L -f -s -o "$TEMP_LOGO_FILE" "$LOGO_URL"
+
+  if [ -f "$TEMP_LOGO_FILE" ] && [ $(stat -c%s "$TEMP_LOGO_FILE") -gt 0 ]; then
+    echo -e "${GREEN}Logo downloaded successfully from $LOGO_URL.${NC}"
+    LOGO_DOWNLOADED=true
+    break
+  else
+    if [ -f "$TEMP_LOGO_FILE" ]; then
+      rm "$TEMP_LOGO_FILE"
+    fi
+    echo -e "${RED}Attempt $ATTEMPT failed or downloaded an empty file from $LOGO_URL.${NC}"
+    if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
+      echo "Retrying in 2 seconds..."
+      sleep 2
+    fi
+  fi
+  ATTEMPT=$((ATTEMPT + 1))
+done
+
+if [ "$LOGO_DOWNLOADED" = false ]; then
+  echo -e "${RED}Failed to download logo from $LOGO_URL after $MAX_ATTEMPTS attempts.${NC}"
+  FALLBACK_ICON_FULL_PATH="$INSTALL_DIR/resources/app/resources/linux/code.png"
+
+  echo "Attempting to use fallback icon from existing installation: $FALLBACK_ICON_FULL_PATH"
+
+  if [ -f "$FALLBACK_ICON_FULL_PATH" ] && [ $(stat -c%s "$FALLBACK_ICON_FULL_PATH") -gt 0 ]; then
+    echo -e "${GREEN}Fallback icon found. Copying to temporary location...${NC}"
+    cp "$FALLBACK_ICON_FULL_PATH" "$TEMP_LOGO_FILE"
+    # Verify the copy succeeded and the temp file is not empty
+    if [ -f "$TEMP_LOGO_FILE" ] && [ $(stat -c%s "$TEMP_LOGO_FILE") -gt 0 ]; then
+      LOGO_DOWNLOADED=true # Mark as successful for subsequent script logic
+      echo -e "${GREEN}Fallback icon successfully prepared from $FALLBACK_ICON_FULL_PATH.${NC}"
+    else
+      echo -e "${RED}Error: Failed to copy or validate fallback icon to $TEMP_LOGO_FILE.${NC}"
+      # LOGO_DOWNLOADED remains false, will be caught by the next check
+    fi
+  else
+    echo -e "${RED}Fallback icon not found or is empty at $FALLBACK_ICON_FULL_PATH.${NC}"
+  fi
+fi
+
+if [ "$LOGO_DOWNLOADED" = false ]; then
+  echo -e "${RED}Error: Failed to obtain a valid logo file from $LOGO_URL or as a fallback.${NC}"
+  echo "The installation cannot proceed without the logo for the desktop shortcut."
+  exit 1
+fi
 
 # Verify checksum
 echo "Verifying download integrity..."
@@ -207,7 +256,7 @@ if [ ! -f "$INSTALL_DIR/windsurf" ]; then
 fi
 
 # Save the logo to the installation directory
-cp "$TEMP_DIR/windsurf-logo-512.png" "$LOGO_PATH"
+cp "$TEMP_LOGO_FILE" "$LOGO_PATH"
 
 # Make the binary executable
 chmod +x "$INSTALL_DIR/windsurf"
@@ -249,17 +298,52 @@ fi
 # Detect user's shell
 CURRENT_SHELL=$(basename "$SHELL")
 
-echo "You can run it from your applications menu or by typing 'windsurf' in terminal."
+echo "" # Add a blank line for better separation
 
+# Instructions for running and updating
+echo -e "${BLUE}--- Next Steps ---${NC}"
+echo "You can run Windsurf from your applications menu or by typing 'windsurf' in the terminal."
+
+# Check if local bin is in PATH for non-root installs
 if [ "$EUID" -ne 0 ]; then
-  echo -e "${BLUE}If '$HOME/.local/bin/' is not in your PATH, you may need to restart your session${NC}"
-  echo -e "or add it manually, running on your terminal:\n"
-
-  if [[ "$CURRENT_SHELL" == "zsh" ]]; then
-    echo -e "${GREEN}echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.zshrc${NC}"
-  else
-    echo -e "${GREEN}echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.bashrc${NC}"
+  if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+    echo -e "\n${BLUE}Important: To run 'windsurf' from the terminal, your PATH needs an update.${NC}"
+    echo "Please add '$HOME/.local/bin' to your PATH. You can do this by running:"
+    if [[ "$CURRENT_SHELL" == "zsh" ]]; then
+      echo -e "${GREEN}echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.zshrc && source ~/.zshrc${NC}"
+    elif [[ "$CURRENT_SHELL" == "bash" ]]; then
+      echo -e "${GREEN}echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.bashrc && source ~/.bashrc${NC}"
+    else
+      echo -e "${GREEN}echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/."$CURRENT_SHELL"rc && source ~/."$CURRENT_SHELL"rc${NC}"
+      echo -e "${BLUE}Note: You might need to adjust the shell configuration file path for '$CURRENT_SHELL'.${NC}"
+    fi
+    echo "You may need to restart your terminal session for this change to take effect."
   fi
-
-  echo -e "\n"
 fi
+
+# Create windsurf-update helper script
+UPDATE_SCRIPT_USER_DIR="$HOME/.local/bin"
+UPDATE_SCRIPT_FULL_PATH="$UPDATE_SCRIPT_USER_DIR/windsurf-update"
+
+echo -e "\n${BLUE}Creating a helper script for updates...${NC}"
+mkdir -p "$UPDATE_SCRIPT_USER_DIR" # Ensure directory exists
+
+cat > "$UPDATE_SCRIPT_FULL_PATH" << EOF_UPDATE_SCRIPT
+#!/bin/bash
+# Windsurf Update Script
+# This script was generated by the Windsurf installer.
+# It allows you to easily update Windsurf by running 'windsurf-update' in your terminal.
+
+echo "Checking for Windsurf updates and reinstalling..."
+curl -fsSL https://raw.githubusercontent.com/EstebanForge/windsurf-installer-linux/main/install-windsurf.sh | bash
+EOF_UPDATE_SCRIPT
+
+chmod +x "$UPDATE_SCRIPT_FULL_PATH"
+
+echo "A helper script 'windsurf-update' has been created at: $UPDATE_SCRIPT_FULL_PATH"
+echo "You can run 'windsurf-update' from your terminal to update Windsurf."
+echo "If '$UPDATE_SCRIPT_USER_DIR' was not already in your PATH,"
+echo "please ensure you've followed the instructions provided earlier to add it,"
+echo "then restart your terminal or source your shell configuration."
+
+echo -e "${BLUE}--------------------${NC}"

@@ -88,6 +88,23 @@ fi
 # Check if the uninstallation was successful
 if [ ! -d "$INSTALL_DIR" ] && [ ! -f "$DESKTOP_FILE" ] && [ ! -L "$BIN_LINK" ]; then
     echo -e "${GREEN}Windsurf has been successfully uninstalled!${NC}"
+
+    UPDATE_SCRIPT_USER_DIR="$HOME/.local/bin"
+    UPDATE_SCRIPT_FULL_PATH="$UPDATE_SCRIPT_USER_DIR/windsurf-update"
+
+    echo -e "\n${BLUE}--- Removing Update Script ---${NC}"
+    if [ -f "$UPDATE_SCRIPT_FULL_PATH" ]; then
+        echo "Removing 'windsurf-update' helper script from $UPDATE_SCRIPT_FULL_PATH..."
+        rm -f "$UPDATE_SCRIPT_FULL_PATH"
+        if [ ! -f "$UPDATE_SCRIPT_FULL_PATH" ]; then
+            echo -e "${GREEN}'windsurf-update' script successfully removed.${NC}"
+        else
+            echo -e "${RED}Failed to remove 'windsurf-update' script. Please remove it manually if desired.${NC}"
+        fi
+    else
+        echo "The 'windsurf-update' helper script was not found at $UPDATE_SCRIPT_FULL_PATH (no action needed)."
+    fi
+    echo -e "${BLUE}----------------------------${NC}"
 else
     echo -e "${RED}Uninstallation may not be complete. Please check manually.${NC}"
     [ -d "$INSTALL_DIR" ] && echo "- Installation directory $INSTALL_DIR still exists."
