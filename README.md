@@ -4,7 +4,7 @@ Scripts to install/update/uninstall [Windsurf Code Editor](https://windsurf.com)
 
 Made for non-deb based Linux distributions, such as Arch Linux, Fedora, and others.
 
-Tested on Fedora 41.
+Tested on Fedora 41 / 42.
 
 <div style="text-align: center;">
   <img src="screenshot-terminal.png" alt="Installer Screenshot" width="100%">
