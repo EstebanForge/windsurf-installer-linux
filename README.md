@@ -1,6 +1,6 @@
-# Windsurf Linux Installer
+# Devin Desktop Installer (ex-Windsurf)
 
-Scripts to install/update/uninstall [Windsurf Code Editor](https://windsurf.com) on Linux. It automates the process of downloading, extracting, and installing the application, as well as setting up the necessary environment variables and symlinks for terminal access.
+Scripts to install/update/uninstall [Devin Desktop](https://devin.ai/blog/windsurf-is-now-devin-desktop) (formerly [Windsurf Code Editor](https://windsurf.com)) on Linux. It automates the process of downloading, extracting, and installing the application, as well as setting up the necessary environment variables and symlinks for terminal access.
 
 Made for non-deb based Linux distributions, such as Arch Linux, Fedora, and others.
 
@@ -12,46 +12,50 @@ Tested on Fedora 41 / 42.
 
 ## Why?
 
-Because Exafunction forgot that Debian/Ubuntu aren't the only Linux distributions out there.
+Because Devin (and previously Exafunction) forgot that Debian/Ubuntu aren't the only Linux distributions out there.
 
-This script is a workaround for those who want to use Windsurf on other distributions without having to manually download, extract, symlink, set paths and add a desktop entry with the correct icon.
+This script is a workaround for those who want to use Devin Desktop on other distributions without having to manually download, extract, symlink, set paths and add a desktop entry with the correct icon.
+
+## Rename History
+
+Windsurf was renamed to **Devin Desktop** in 2026. The GitHub repo name (`windsurf-installer-linux`) is kept for continuity, but all scripts and paths now use the `devin-desktop` naming. If you had a previous Windsurf install, the installer will automatically detect and clean up old paths.
 
 ## Installation
 
-This will download the latest version of Windsurf in tarball format, extract it, and set up the necessary environment variables and symlinks for terminal usage.
+This will download the latest version of Devin Desktop in tarball format, extract it, and set up the necessary environment variables and symlinks for terminal usage.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/EstebanForge/windsurf-installer-linux/main/install-windsurf.sh | bash
+curl -fsSL https://raw.githubusercontent.com/EstebanForge/windsurf-installer-linux/main/install-devin-desktop.sh | bash
 ```
 
 Or download the script and run it manually:
 
 ```bash
-curl -O https://raw.githubusercontent.com/EstebanForge/windsurf-installer-linux/main/install-windsurf.sh && chmod +x install-windsurf.sh && ./install-windsurf.sh
+curl -O https://raw.githubusercontent.com/EstebanForge/windsurf-installer-linux/main/install-devin-desktop.sh && chmod +x install-devin-desktop.sh && ./install-devin-desktop.sh
 ```
 
 ## Updates
 
-To update Windsurf, you can run the installation script again. It will check for the latest version and update it if necessary.
+To update Devin Desktop, you can run the installation script again. It will check for the latest version and update it if necessary.
 
 Or you can use the provided command to update it directly:
 
 ```bash
-windsurf-update
+devin-desktop-update
 ```
 
 ## Uninstallation
 
-To uninstall Windsurf you can use the provided uninstall script. This will remove the application and clean up any symlinks created during installation.
+To uninstall Devin Desktop you can use the provided uninstall script. This will remove the application and clean up any symlinks created during installation.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/EstebanForge/windsurf-installer-linux/main/uninstall-windsurf.sh | bash
+curl -fsSL https://raw.githubusercontent.com/EstebanForge/windsurf-installer-linux/main/uninstall-devin-desktop.sh | bash
 ```
 
 Or download the script and run it manually:
 
 ```bash
-curl -O https://raw.githubusercontent.com/EstebanForge/windsurf-installer-linux/main/uninstall-windsurf.sh && chmod +x uninstall-windsurf.sh && ./uninstall-windsurf.sh
+curl -O https://raw.githubusercontent.com/EstebanForge/windsurf-installer-linux/main/uninstall-devin-desktop.sh && chmod +x uninstall-devin-desktop.sh && ./uninstall-devin-desktop.sh
 ```
 
 # License
@@ -59,4 +63,3 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 # Disclaimer
 This script is provided as-is without any warranty. Use it at your own risk. The author is not responsible for any issues that may arise from using this script.
-

@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Windsurf Installer for Linux
+# Devin Desktop Installer for Linux
 # Esteban Cuevas <esteban at attitude.cl>
 # Licensed under the MIT License, see LICENSE file for details.
 
-# This script installs the Windsurf on a Linux system, using the tarball provided by Windsurf itself.
+# This script installs Devin Desktop (formerly Windsurf) on a Linux system, using the tarball provided by the upstream API.
 
 set -e
 
@@ -16,9 +16,9 @@ NC='\033[0m' # No Color
 
 # Check if system is x64
 if [ "$(uname -m)" != "x86_64" ]; then
-  echo -e "${RED}Error: Windsurf is only compatible with x64 systems.${NC}"
+  echo -e "${RED}Error: Devin Desktop is only compatible with x64 systems.${NC}"
   echo "Your system architecture: $(uname -m)"
-  echo "Windsurf doesn't work with 32-bit or ARM CPUs."
+  echo "Devin Desktop doesn't work with 32-bit or ARM CPUs."
   exit 1
 fi
 
@@ -28,23 +28,23 @@ DESKTOP_FILE=""
 BIN_LINK=""
 
 # System-wide installation paths
-SYSTEM_INSTALL_DIR="/opt/windsurf"
-SYSTEM_DESKTOP_FILE="/usr/share/applications/windsurf.desktop"
-SYSTEM_BIN_LINK="/usr/local/bin/windsurf"
+SYSTEM_INSTALL_DIR="/opt/devin-desktop"
+SYSTEM_DESKTOP_FILE="/usr/share/applications/devin-desktop.desktop"
+SYSTEM_BIN_LINK="/usr/local/bin/devin-desktop"
 
 # Local installation paths
-USER_INSTALL_DIR="$HOME/.local/share/windsurf"
-USER_DESKTOP_FILE="$HOME/.local/share/applications/windsurf.desktop"
-USER_BIN_LINK="$HOME/.local/bin/windsurf"
+USER_INSTALL_DIR="$HOME/.local/share/devin-desktop"
+USER_DESKTOP_FILE="$HOME/.local/share/applications/devin-desktop.desktop"
+USER_BIN_LINK="$HOME/.local/bin/devin-desktop"
 
 # Temp directory for download
 # Use XDG_RUNTIME_DIR if available, fall back to /tmp
-TEMP_DIR="${XDG_RUNTIME_DIR:-/tmp}/windsurf-installer-$$"
+TEMP_DIR="${XDG_RUNTIME_DIR:-/tmp}/devin-desktop-installer-$$"
 mkdir -p "$TEMP_DIR"
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
-echo -e "${GREEN}Windsurf Installer for Linux${NC}"
-echo "This script will install Windsurf on your system."
+echo -e "${GREEN}Devin Desktop Installer for Linux${NC}"
+echo "This script will install Devin Desktop (formerly Windsurf) on your system."
 
 # Set installation paths based on privileges
 if [ "$EUID" -eq 0 ]; then
@@ -64,7 +64,7 @@ else
 
   # Add ~/.local/bin to PATH if not already there
   if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
-    echo -e "${BLUE}Note: Add ~/.local/bin to your PATH to run windsurf from terminal${NC}"
+    echo -e "${BLUE}Note: Add ~/.local/bin to your PATH to run devin-desktop from terminal${NC}"
     echo "export PATH=\"\$HOME/.local/bin:\$PATH\""
   fi
 fi
@@ -83,15 +83,16 @@ if [ -d "$INSTALL_DIR" ]; then
     # 2>/dev/null for grep: suppress errors if file unreadable/pattern not found.
     # If grep fails/no match, output is empty, cut produces empty, CURRENT_VERSION becomes/remains empty.
     CURRENT_VERSION=$(grep -o '"windsurfVersion":[[:space:]]*"[^"]*"' "$PRODUCT_JSON_PATH" 2>/dev/null | cut -d'"' -f4)
+    # Note: upstream API still uses "windsurfVersion" field name even after Devin Desktop rebrand
   fi
   # If CURRENT_VERSION is still empty, it means product.json was not found,
   # or it was found but the version could not be extracted.
 
   if [ -n "$CURRENT_VERSION" ]; then
-    echo -e "${BLUE}Found existing Windsurf installation (version $CURRENT_VERSION)${NC}"
+    echo -e "${BLUE}Found existing Devin Desktop installation (version $CURRENT_VERSION)${NC}"
     UPGRADE_MODE=true
   else
-    echo -e "${BLUE}Found existing Windsurf installation (unknown version)${NC}"
+    echo -e "${BLUE}Found existing Devin Desktop installation (unknown version)${NC}"
     UPGRADE_MODE=true
   fi
 fi
@@ -112,11 +113,11 @@ if [ -z "$DOWNLOAD_URL" ] || [ -z "$VERSION" ] || [ -z "$SHA256" ]; then
   exit 1
 fi
 
-echo -e "${BLUE}Remote available Windsurf version: $VERSION${NC}"
+echo -e "${BLUE}Remote available Devin Desktop version: $VERSION${NC}"
 
 # Check if we already have the latest version
 if [ "$UPGRADE_MODE" = true ] && [ "$CURRENT_VERSION" = "$VERSION" ]; then
-  echo -e "${BLUE}You already have Windsurf version $VERSION installed.${NC}"
+  echo -e "${BLUE}You already have Devin Desktop version $VERSION installed.${NC}"
   # Read directly from the terminal, not stdin (which is piped from curl)
   read -p "Do you want to reinstall the same version? (y/N) " -n 1 -r < /dev/tty
   echo # Add a newline after the read prompt
@@ -124,80 +125,24 @@ if [ "$UPGRADE_MODE" = true ] && [ "$CURRENT_VERSION" = "$VERSION" ]; then
     echo "Installation cancelled."
     exit 0
   fi
-  echo "Proceeding with reinstallation of Windsurf version $VERSION..."
+  echo "Proceeding with reinstallation of Devin Desktop version $VERSION..."
 fi
 
 if [ "$UPGRADE_MODE" = true ]; then
-  echo -e "${BLUE}Upgrading Windsurf from version $CURRENT_VERSION to $VERSION${NC}"
+  echo -e "${BLUE}Upgrading Devin Desktop from version $CURRENT_VERSION to $VERSION${NC}"
 else
-  echo -e "${BLUE}Installing Windsurf version $VERSION${NC}"
+  echo -e "${BLUE}Installing Devin Desktop version $VERSION${NC}"
 fi
 
 echo "Download URL: $DOWNLOAD_URL"
 
 # Download the tarball
-TARBALL="$TEMP_DIR/windsurf.tar.gz"
-echo "Downloading Windsurf..."
+TARBALL="$TEMP_DIR/devin-desktop.tar.gz"
+echo "Downloading Devin Desktop..."
 curl -L "$DOWNLOAD_URL" -o "$TARBALL"
 
-# Download the icon-logo from GitHub
-echo "Downloading Windsurf logo..."
-LOGO_URL="https://raw.githubusercontent.com/EstebanForge/windsurf-installer-linux/main/windsurf-logo-512.png"
-LOGO_PATH="$INSTALL_DIR/windsurf-logo-512.png" # Final destination path for the logo
-TEMP_LOGO_FILE="$TEMP_DIR/windsurf-logo-512.png" # Temporary download location
-
-MAX_ATTEMPTS=3
-ATTEMPT=1
-LOGO_DOWNLOADED=false
-
-while [ $ATTEMPT -le $MAX_ATTEMPTS ]; do
-  echo "Attempt $ATTEMPT of $MAX_ATTEMPTS to download logo..."
-  curl -L -f -s -o "$TEMP_LOGO_FILE" "$LOGO_URL"
-
-  if [ -f "$TEMP_LOGO_FILE" ] && [ $(stat -c%s "$TEMP_LOGO_FILE") -gt 0 ]; then
-    echo -e "${GREEN}Logo downloaded successfully from $LOGO_URL.${NC}"
-    LOGO_DOWNLOADED=true
-    break
-  else
-    if [ -f "$TEMP_LOGO_FILE" ]; then
-      rm "$TEMP_LOGO_FILE"
-    fi
-    echo -e "${RED}Attempt $ATTEMPT failed or downloaded an empty file from $LOGO_URL.${NC}"
-    if [ $ATTEMPT -lt $MAX_ATTEMPTS ]; then
-      echo "Retrying in 2 seconds..."
-      sleep 2
-    fi
-  fi
-  ATTEMPT=$((ATTEMPT + 1))
-done
-
-if [ "$LOGO_DOWNLOADED" = false ]; then
-  echo -e "${RED}Failed to download logo from $LOGO_URL after $MAX_ATTEMPTS attempts.${NC}"
-  FALLBACK_ICON_FULL_PATH="$INSTALL_DIR/resources/app/resources/linux/code.png"
-
-  echo "Attempting to use fallback icon from existing installation: $FALLBACK_ICON_FULL_PATH"
-
-  if [ -f "$FALLBACK_ICON_FULL_PATH" ] && [ $(stat -c%s "$FALLBACK_ICON_FULL_PATH") -gt 0 ]; then
-    echo -e "${GREEN}Fallback icon found. Copying to temporary location...${NC}"
-    cp "$FALLBACK_ICON_FULL_PATH" "$TEMP_LOGO_FILE"
-    # Verify the copy succeeded and the temp file is not empty
-    if [ -f "$TEMP_LOGO_FILE" ] && [ $(stat -c%s "$TEMP_LOGO_FILE") -gt 0 ]; then
-      LOGO_DOWNLOADED=true # Mark as successful for subsequent script logic
-      echo -e "${GREEN}Fallback icon successfully prepared from $FALLBACK_ICON_FULL_PATH.${NC}"
-    else
-      echo -e "${RED}Error: Failed to copy or validate fallback icon to $TEMP_LOGO_FILE.${NC}"
-      # LOGO_DOWNLOADED remains false, will be caught by the next check
-    fi
-  else
-    echo -e "${RED}Fallback icon not found or is empty at $FALLBACK_ICON_FULL_PATH.${NC}"
-  fi
-fi
-
-if [ "$LOGO_DOWNLOADED" = false ]; then
-  echo -e "${RED}Error: Failed to obtain a valid logo file from $LOGO_URL or as a fallback.${NC}"
-  echo "The installation cannot proceed without the logo for the desktop shortcut."
-  exit 1
-fi
+# Icon will be extracted from the tarball after extraction (see below).
+LOGO_PATH="$INSTALL_DIR/devin-desktop-logo.svg"
 
 # Verify checksum
 echo "Verifying download integrity..."
@@ -211,7 +156,7 @@ fi
 echo -e "${GREEN}Checksum verification passed!${NC}"
 
 # Extract the tarball
-echo "Extracting Windsurf..."
+echo "Extracting Devin Desktop..."
 tar -xzf "$TARBALL" -C "$TEMP_DIR"
 
 # Find the chrome-sandbox file to locate the correct application directory
@@ -219,7 +164,7 @@ CHROME_SANDBOX=$(find "$TEMP_DIR" -type f -name "chrome-sandbox" | head -n 1)
 
 if [ -z "$CHROME_SANDBOX" ]; then
   echo -e "${RED}Error: Could not find chrome-sandbox in the extracted files${NC}"
-  echo "This might indicate a change in the Windsurf package structure."
+  echo "This might indicate a change in the Devin Desktop package structure."
   echo "Extracted contents:"
   find "$TEMP_DIR" -type f | sort | grep -v "node_modules" | head -20
   exit 1
@@ -246,7 +191,7 @@ else
 fi
 
 # Verify installation succeeded
-if [ ! -f "$INSTALL_DIR/windsurf" ]; then
+if [ ! -f "$INSTALL_DIR/devin-desktop" ]; then
   echo -e "${RED}Error: Installation failed, binary not found at expected location${NC}"
   echo "Contents of source directory ($APP_DIR):"
   ls -la "$APP_DIR"
@@ -255,44 +200,58 @@ if [ ! -f "$INSTALL_DIR/windsurf" ]; then
   exit 1
 fi
 
-# Save the logo to the installation directory
-cp "$TEMP_LOGO_FILE" "$LOGO_PATH"
+# Extract the Devin logo from the tarball
+# Primary: out/media/code-icon.svg, Fallback: resources/linux/code.png
+TARBALL_LOGO_PATH=$(tar -tzf "$TARBALL" | grep -E 'out/media/code-icon\.svg$' | head -n 1)
+if [ -z "$TARBALL_LOGO_PATH" ]; then
+  echo -e "${RED}SVG icon not found in tarball, falling back to PNG...${NC}"
+  TARBALL_LOGO_PATH=$(tar -tzf "$TARBALL" | grep -E 'resources/linux/code\.png$' | head -n 1)
+  LOGO_PATH="$INSTALL_DIR/devin-desktop-logo.png"
+fi
+if [ -n "$TARBALL_LOGO_PATH" ]; then
+  echo "Extracting Devin Desktop logo..."
+  tar -xzf "$TARBALL" -C "$TEMP_DIR" "$TARBALL_LOGO_PATH"
+  cp "$TEMP_DIR/$TARBALL_LOGO_PATH" "$LOGO_PATH"
+  echo -e "${GREEN}Logo extracted successfully.${NC}"
+else
+  echo -e "${RED}Warning: Could not find logo in tarball. Desktop shortcut will have no icon.${NC}"
+fi
 
 # Make the binary executable
-chmod +x "$INSTALL_DIR/windsurf"
+chmod +x "$INSTALL_DIR/devin-desktop"
 
 # Create a symlink in bin directory
 echo "Creating symlink..."
 mkdir -p "$(dirname "$BIN_LINK")"
-ln -sf "$INSTALL_DIR/windsurf" "$BIN_LINK"
+ln -sf "$INSTALL_DIR/devin-desktop" "$BIN_LINK"
 
 # Create desktop entry
 echo "Creating desktop shortcut..."
 mkdir -p "$(dirname "$DESKTOP_FILE")"
 cat > "$DESKTOP_FILE" << EOF
 [Desktop Entry]
-Name=Windsurf
+Name=Devin Desktop
 GenericName=Code Editor
-Comment=IDE built to keep you in flow state. Instant, invaluable AI developer assistance where you want it, when you want it
-Exec=$INSTALL_DIR/windsurf %F
+Comment=AI-powered code editor, formerly Windsurf
+Exec=$INSTALL_DIR/devin-desktop %F
 Icon=$LOGO_PATH
 Type=Application
 Actions=new-empty-window;
 MimeType=application/x-code-workspace;
 Categories=Development;TextEditor;
-Keywords=windsurf;code;editor;
+Keywords=devin;windsurf;code;editor;
 Version=$VERSION
-StartupWMClass=windsurf-url-handler
+StartupWMClass=devin-desktop
 
 [Desktop Action new-empty-window]
 Name=New Empty Window
-Exec=$INSTALL_DIR/windsurf --new-window %F
+Exec=$INSTALL_DIR/devin-desktop --new-window %F
 EOF
 
 if [ "$UPGRADE_MODE" = true ]; then
-  echo -e "${GREEN}Windsurf has been successfully upgraded to version $VERSION!${NC}"
+  echo -e "${GREEN}Devin Desktop has been successfully upgraded to version $VERSION!${NC}"
 else
-  echo -e "${GREEN}Windsurf $VERSION has been successfully installed!${NC}"
+  echo -e "${GREEN}Devin Desktop $VERSION has been successfully installed!${NC}"
 fi
 
 # Detect user's shell
@@ -302,12 +261,12 @@ echo "" # Add a blank line for better separation
 
 # Instructions for running and updating
 echo -e "${BLUE}--- Next Steps ---${NC}"
-echo "You can run Windsurf from your applications menu or by typing 'windsurf' in the terminal."
+echo "You can run Devin Desktop from your applications menu or by typing 'devin-desktop' in the terminal."
 
 # Check if local bin is in PATH for non-root installs
 if [ "$EUID" -ne 0 ]; then
   if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
-    echo -e "\n${BLUE}Important: To run 'windsurf' from the terminal, your PATH needs an update.${NC}"
+    echo -e "\n${BLUE}Important: To run 'devin-desktop' from the terminal, your PATH needs an update.${NC}"
     echo "Please add '$HOME/.local/bin' to your PATH. You can do this by running:"
     if [[ "$CURRENT_SHELL" == "zsh" ]]; then
       echo -e "${GREEN}echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.zshrc && source ~/.zshrc${NC}"
@@ -321,29 +280,61 @@ if [ "$EUID" -ne 0 ]; then
   fi
 fi
 
-# Create windsurf-update helper script
+# Create devin-desktop-update helper script
 UPDATE_SCRIPT_USER_DIR="$HOME/.local/bin"
-UPDATE_SCRIPT_FULL_PATH="$UPDATE_SCRIPT_USER_DIR/windsurf-update"
+UPDATE_SCRIPT_FULL_PATH="$UPDATE_SCRIPT_USER_DIR/devin-desktop-update"
 
 echo -e "\n${BLUE}Creating a helper script for updates...${NC}"
 mkdir -p "$UPDATE_SCRIPT_USER_DIR" # Ensure directory exists
 
 cat > "$UPDATE_SCRIPT_FULL_PATH" << EOF_UPDATE_SCRIPT
 #!/bin/bash
-# Windsurf Update Script
-# This script was generated by the Windsurf installer.
-# It allows you to easily update Windsurf by running 'windsurf-update' in your terminal.
+# Devin Desktop Update Script
+# This script was generated by the Devin Desktop installer.
+# It allows you to easily update Devin Desktop by running 'devin-desktop-update' in your terminal.
 
-echo "Checking for Windsurf updates and reinstalling..."
-curl -fsSL https://raw.githubusercontent.com/EstebanForge/windsurf-installer-linux/main/install-windsurf.sh | bash
+echo "Checking for Devin Desktop updates and reinstalling..."
+curl -fsSL https://raw.githubusercontent.com/EstebanForge/windsurf-installer-linux/main/install-devin-desktop.sh | bash
 EOF_UPDATE_SCRIPT
 
 chmod +x "$UPDATE_SCRIPT_FULL_PATH"
 
-echo "A helper script 'windsurf-update' has been created at: $UPDATE_SCRIPT_FULL_PATH"
-echo "You can run 'windsurf-update' from your terminal to update Windsurf."
+echo "A helper script 'devin-desktop-update' has been created at: $UPDATE_SCRIPT_FULL_PATH"
+echo "You can run 'devin-desktop-update' from your terminal to update Devin Desktop."
 echo "If '$UPDATE_SCRIPT_USER_DIR' was not already in your PATH,"
 echo "please ensure you've followed the instructions provided earlier to add it,"
 echo "then restart your terminal or source your shell configuration."
+
+# Clean up old Windsurf paths if they exist (migration from previous install)
+if [ "$EUID" -eq 0 ]; then
+  OLD_INSTALL_DIR="/opt/windsurf"
+  OLD_DESKTOP_FILE="/usr/share/applications/windsurf.desktop"
+  OLD_BIN_LINK="/usr/local/bin/windsurf"
+else
+  OLD_INSTALL_DIR="$HOME/.local/share/windsurf"
+  OLD_DESKTOP_FILE="$HOME/.local/share/applications/windsurf.desktop"
+  OLD_BIN_LINK="$HOME/.local/bin/windsurf"
+fi
+OLD_UPDATE_SCRIPT="$HOME/.local/bin/windsurf-update"
+
+MIGRATION_NEEDED=false
+for old_path in "$OLD_INSTALL_DIR" "$OLD_DESKTOP_FILE" "$OLD_BIN_LINK" "$OLD_UPDATE_SCRIPT"; do
+  if [ -e "$old_path" ]; then
+    MIGRATION_NEEDED=true
+    break
+  fi
+done
+
+if [ "$MIGRATION_NEEDED" = true ]; then
+  echo -e "\n${BLUE}--- Migrating from Windsurf to Devin Desktop ---${NC}"
+  echo "Found old Windsurf installation paths. Cleaning up..."
+
+  [ -L "$OLD_BIN_LINK" ] && echo "Removing old symlink $OLD_BIN_LINK" && rm -f "$OLD_BIN_LINK"
+  [ -f "$OLD_DESKTOP_FILE" ] && echo "Removing old desktop entry $OLD_DESKTOP_FILE" && rm -f "$OLD_DESKTOP_FILE"
+  [ -f "$OLD_UPDATE_SCRIPT" ] && echo "Removing old update script $OLD_UPDATE_SCRIPT" && rm -f "$OLD_UPDATE_SCRIPT"
+  [ -d "$OLD_INSTALL_DIR" ] && echo "Removing old installation directory $OLD_INSTALL_DIR" && rm -rf "$OLD_INSTALL_DIR"
+
+  echo -e "${GREEN}Old Windsurf paths cleaned up.${NC}"
+fi
 
 echo -e "${BLUE}--------------------${NC}"

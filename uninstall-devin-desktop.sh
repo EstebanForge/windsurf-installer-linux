@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Windsurf Uninstaller for Linux
+# Devin Desktop Uninstaller for Linux
 # Esteban Cuevas <esteban at attitude.cl>
 # Licensed under the MIT License, see LICENSE file for details.
 
-# This script uninstalls Windsurf from a Linux system.
+# This script uninstalls Devin Desktop (formerly Windsurf) from a Linux system.
 
 set -e
 
@@ -20,17 +20,17 @@ DESKTOP_FILE=""
 BIN_LINK=""
 
 # System-wide installation paths
-SYSTEM_INSTALL_DIR="/opt/windsurf"
-SYSTEM_DESKTOP_FILE="/usr/share/applications/windsurf.desktop"
-SYSTEM_BIN_LINK="/usr/local/bin/windsurf"
+SYSTEM_INSTALL_DIR="/opt/devin-desktop"
+SYSTEM_DESKTOP_FILE="/usr/share/applications/devin-desktop.desktop"
+SYSTEM_BIN_LINK="/usr/local/bin/devin-desktop"
 
 # Local installation paths
-USER_INSTALL_DIR="$HOME/.local/share/windsurf"
-USER_DESKTOP_FILE="$HOME/.local/share/applications/windsurf.desktop"
-USER_BIN_LINK="$HOME/.local/bin/windsurf"
+USER_INSTALL_DIR="$HOME/.local/share/devin-desktop"
+USER_DESKTOP_FILE="$HOME/.local/share/applications/devin-desktop.desktop"
+USER_BIN_LINK="$HOME/.local/bin/devin-desktop"
 
-echo -e "${GREEN}Windsurf Uninstaller for Linux${NC}"
-echo "This script will remove Windsurf from your system."
+echo -e "${GREEN}Devin Desktop Uninstaller for Linux${NC}"
+echo "This script will remove Devin Desktop (formerly Windsurf) from your system."
 
 # Check if system-wide or local installation exists
 if [ -d "$SYSTEM_INSTALL_DIR" ] && [ "$EUID" -eq 0 ]; then
@@ -50,14 +50,20 @@ else
         echo "Please run this script with sudo to uninstall the system-wide installation."
         exit 1
     else
-        echo -e "${RED}Windsurf installation not found.${NC}"
+        echo -e "${RED}Devin Desktop installation not found.${NC}"
+        # Also check for old Windsurf paths
+        OLD_SYSTEM_INSTALL_DIR="/opt/windsurf"
+        OLD_USER_INSTALL_DIR="$HOME/.local/share/windsurf"
+        if [ -d "$OLD_SYSTEM_INSTALL_DIR" ] || [ -d "$OLD_USER_INSTALL_DIR" ]; then
+            echo -e "${BLUE}Found old Windsurf installation paths. Use the installer to migrate, or remove manually.${NC}"
+        fi
         exit 1
     fi
 fi
 
 # Ask for confirmation
 # Read directly from the terminal, not stdin (which is piped from curl)
-read -p "Are you sure you want to uninstall Windsurf? (y/N) " -n 1 -r < /dev/tty
+read -p "Are you sure you want to uninstall Devin Desktop? (y/N) " -n 1 -r < /dev/tty
 echo # Add a newline after the read prompt
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     echo "Uninstallation cancelled."
@@ -65,7 +71,7 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]; then
 fi
 
 # Remove files
-echo "Removing Windsurf..."
+echo "Removing Devin Desktop..."
 
 # Remove the symlink
 if [ -L "$BIN_LINK" ]; then
@@ -87,23 +93,31 @@ fi
 
 # Check if the uninstallation was successful
 if [ ! -d "$INSTALL_DIR" ] && [ ! -f "$DESKTOP_FILE" ] && [ ! -L "$BIN_LINK" ]; then
-    echo -e "${GREEN}Windsurf has been successfully uninstalled!${NC}"
+    echo -e "${GREEN}Devin Desktop has been successfully uninstalled!${NC}"
 
     UPDATE_SCRIPT_USER_DIR="$HOME/.local/bin"
-    UPDATE_SCRIPT_FULL_PATH="$UPDATE_SCRIPT_USER_DIR/windsurf-update"
+    UPDATE_SCRIPT_FULL_PATH="$UPDATE_SCRIPT_USER_DIR/devin-desktop-update"
 
     echo -e "\n${BLUE}--- Removing Update Script ---${NC}"
     if [ -f "$UPDATE_SCRIPT_FULL_PATH" ]; then
-        echo "Removing 'windsurf-update' helper script from $UPDATE_SCRIPT_FULL_PATH..."
+        echo "Removing 'devin-desktop-update' helper script from $UPDATE_SCRIPT_FULL_PATH..."
         rm -f "$UPDATE_SCRIPT_FULL_PATH"
         if [ ! -f "$UPDATE_SCRIPT_FULL_PATH" ]; then
-            echo -e "${GREEN}'windsurf-update' script successfully removed.${NC}"
+            echo -e "${GREEN}'devin-desktop-update' script successfully removed.${NC}"
         else
-            echo -e "${RED}Failed to remove 'windsurf-update' script. Please remove it manually if desired.${NC}"
+            echo -e "${RED}Failed to remove 'devin-desktop-update' script. Please remove it manually if desired.${NC}"
         fi
     else
-        echo "The 'windsurf-update' helper script was not found at $UPDATE_SCRIPT_FULL_PATH (no action needed)."
+        echo "The 'devin-desktop-update' helper script was not found at $UPDATE_SCRIPT_FULL_PATH (no action needed)."
     fi
+
+    # Also clean up old Windsurf update script if present
+    OLD_UPDATE_SCRIPT="$UPDATE_SCRIPT_USER_DIR/windsurf-update"
+    if [ -f "$OLD_UPDATE_SCRIPT" ]; then
+        echo "Removing old 'windsurf-update' helper script..."
+        rm -f "$OLD_UPDATE_SCRIPT"
+    fi
+
     echo -e "${BLUE}----------------------------${NC}"
 else
     echo -e "${RED}Uninstallation may not be complete. Please check manually.${NC}"
